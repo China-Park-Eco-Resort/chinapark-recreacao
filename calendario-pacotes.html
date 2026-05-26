@@ -728,6 +728,9 @@
   <aside class="panel" id="panel"></aside>
 </div>
 
+<!-- Supabase JS client -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <script>
 // ============================================================
 // CONFIGURAÇÃO (espelho da aba "Configurações" do xlsx)
@@ -741,6 +744,54 @@ const CONFIG = {
 
 // Modo somente-leitura (diretoria). Ative com ?view=readonly na URL.
 const READONLY = new URLSearchParams(window.location.search).get("view") === "readonly";
+
+// ============================================================
+// SUPABASE CLIENT (banco compartilhado entre todos os papéis)
+// ============================================================
+const SUPABASE_URL = "https://fdgbdpzhmklypepvbhmr.supabase.co";
+const SUPABASE_KEY = "sb_publishable_V4eHa9yR5CeNdlX0yUMJ9w_clCMwT3p";
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// Mapear formato Supabase ↔ formato local (legacy_id ↔ id)
+function supabaseToLocal(row) {
+  return {
+    id: row.legacy_id,
+    _uuid: row.id,
+    nome: row.nome,
+    categoria: row.categoria,
+    inicio: row.inicio,
+    fim: row.fim,
+    slug: row.slug,
+    preco: row.preco,
+    status: row.status,
+    notas: row.notas || "",
+    inputs: row.inputs || {datas:"pend",preco:"pend",arte:"pend",imagem:"pend",programacao:"pend",copy:"pend"},
+    arte_link: row.arte_link,
+    banner_link: row.banner_link,
+    imagem_diretora_link: row.imagem_diretora_link,
+    copy_link: row.copy_link,
+    programacao: row.programacao,
+  };
+}
+function localToSupabase(p) {
+  return {
+    legacy_id: p.id,
+    nome: p.nome,
+    categoria: p.categoria,
+    inicio: p.inicio,
+    fim: p.fim,
+    slug: p.slug,
+    preco: p.preco,
+    status: p.status,
+    notas: p.notas || "",
+    inputs: p.inputs,
+    arte_link: p.arte_link || null,
+    banner_link: p.banner_link || null,
+    imagem_diretora_link: p.imagem_diretora_link || null,
+    copy_link: p.copy_link || null,
+    programacao: p.programacao || [],
+  };
+}
 
 // ============================================================
 // DATASET DOS PACOTES (seed inicial — espelho do xlsx)
@@ -838,19 +889,65 @@ const SEED_PACOTES = [
     notas: "Vira o ano para 2027" },
 ];
 
-// Carrega do localStorage; se não existir, usa o seed
-function carregarPacotes() {
+// ============================================================
+// DATA LAYER — Supabase é a fonte da verdade.
+// localStorage só serve como fallback se Supabase falhar (rede off, etc.)
+// ============================================================
+let PACOTES = []; // populado após carregarPacotes() resolver
+
+async function carregarPacotes() {
+  try {
+    const { data, error } = await sb.from("pacotes").select("*").order("inicio");
+    if (error) throw error;
+    if (data && data.length) {
+      PACOTES = data.map(supabaseToLocal);
+      // Cache local pra resiliência
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(PACOTES)); } catch (e) {}
+      return PACOTES;
+    }
+  } catch (e) {
+    console.warn("Supabase indisponível, usando cache local ou seed:", e);
+  }
+  // Fallback: cache local
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
-  } catch (e) { console.warn("localStorage falhou, usando seed", e); }
-  return JSON.parse(JSON.stringify(SEED_PACOTES));
+    if (raw) { PACOTES = JSON.parse(raw); return PACOTES; }
+  } catch (e) {}
+  // Último fallback: seed embarcado no JS
+  PACOTES = JSON.parse(JSON.stringify(SEED_PACOTES));
+  return PACOTES;
 }
+
+async function salvarPacoteRemoto(p) {
+  try {
+    const { error } = await sb.from("pacotes").upsert(localToSupabase(p), { onConflict: "legacy_id" });
+    if (error) throw error;
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(PACOTES)); } catch (e) {}
+    return true;
+  } catch (e) {
+    console.error("Falha ao salvar pacote:", e);
+    alert("Falha ao salvar no servidor. Tente novamente.");
+    return false;
+  }
+}
+
+async function excluirPacoteRemoto(id) {
+  try {
+    const { error } = await sb.from("pacotes").delete().eq("legacy_id", id);
+    if (error) throw error;
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(PACOTES)); } catch (e) {}
+    return true;
+  } catch (e) {
+    console.error("Falha ao excluir pacote:", e);
+    alert("Falha ao excluir no servidor. Tente novamente.");
+    return false;
+  }
+}
+
+// Compatibilidade: chamadas antigas no código
 function salvarPacotes() {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(PACOTES)); }
-  catch (e) { console.warn("Falha ao salvar:", e); }
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(PACOTES)); } catch (e) {}
 }
-let PACOTES = carregarPacotes();
 
 // 10 blocos da página
 const BLOCOS = [
@@ -1089,73 +1186,110 @@ function abrirPanel(id) {
       : `<div class="panel-row"><span class="label">${lbl}</span><span class="input-pill clickable ${cls}" onclick="toggleInput(${p.id}, '${k}')" title="Clique para alternar">${txt}</span></div>`;
   }).join("");
 
-  document.getElementById("panel").innerHTML = `
-    <button class="close" onclick="fecharPanel()">×</button>
-    <h2>${p.nome}</h2>
-    <div class="panel-meta">
-      <span class="badge badge-st-${stKey(p.status)}">${p.status}</span>
-      <span style="margin-left:8px">${fmtPretty(p.inicio)} a ${fmtPretty(p.fim)} (${dias} dias)</span>
-    </div>
-    ${READONLY ? "" : `<div class="panel-actions">
-      <button class="btn-secondary" onclick="abrirForm(${p.id})">✎ Editar</button>
-      <button class="btn-danger" onclick="removerPacote(${p.id})">🗑 Excluir</button>
-    </div>`}
+  // Bloco da arte (só renderiza se houver link Drive — virá pela integração Supabase)
+  const arteBlock = (p.arte_link || p.banner_link)
+    ? `<div class="panel-section">
+        <h3>Arte</h3>
+        ${p.arte_link ? `<a href="${p.arte_link}" target="_blank" rel="noopener" style="display:block;margin-bottom:8px"><img src="${p.arte_link}" alt="Arte do pacote" style="max-width:100%;border-radius:6px;border:1px solid var(--line)"/></a>` : ``}
+        ${p.banner_link ? `<a href="${p.banner_link}" target="_blank" rel="noopener" style="display:block"><img src="${p.banner_link}" alt="Banner do pacote" style="max-width:100%;border-radius:6px;border:1px solid var(--line)"/></a>` : ``}
+       </div>`
+    : ``;
 
-    <div class="panel-section">
-      <h3>Resumo</h3>
-      <div class="panel-row"><span class="label">Categoria</span><span class="value">${p.categoria}</span></div>
-      <div class="panel-row"><span class="label">Slug URL</span><span class="value">${p.slug}</span></div>
-      <div class="panel-row"><span class="label">Preço (modelo)</span><span class="value">R$ ${p.preco.toLocaleString("pt-BR")}</span></div>
-      <div class="panel-row"><span class="label">Parcelamento</span><span class="value">10x R$ ${parcela.toLocaleString("pt-BR")}</span></div>
-      ${p.notas ? `<div class="panel-row"><span class="label">Notas</span><span class="value" style="text-align:right">${p.notas}</span></div>` : ``}
-    </div>
-
-    <div class="panel-section">
-      <h3>Status das entregas${READONLY ? "" : ` <span style="font-weight:400;text-transform:none;font-size:10px;letter-spacing:0;color:var(--muted)">(clique pra alternar)</span>`}</h3>
-      ${inputsRows}
-    </div>
-
-    <div class="panel-section">
-      <h3>URL completa do site</h3>
-      <div class="link-block">https://${slugFull}</div>
-      <button class="copy-btn" onclick="copiar('https://${slugFull}', this)">Copiar URL</button>
-    </div>
-
-    <div class="panel-section">
-      <h3>Link de reserva (OmniBees)</h3>
-      <div class="link-block">${url}</div>
-      <button class="copy-btn green" onclick="copiar(${JSON.stringify(url)}, this)">Copiar link de reserva</button>
-      <div style="font-size:11px;color:var(--muted);margin-top:8px">
-        Motor de reservas oficial do China Park (Omnibees) com check-in e check-out já preenchidos.
+  document.getElementById("panel").innerHTML = READONLY
+    ? `
+      <button class="close" onclick="fecharPanel()">×</button>
+      <h2>${p.nome}</h2>
+      <div class="panel-meta">
+        <span class="badge badge-st-${stKey(p.status)}">${p.status}</span>
+        <span style="margin-left:8px">${fmtPretty(p.inicio)} a ${fmtPretty(p.fim)} (${dias} dias)</span>
       </div>
-    </div>
 
-    <div class="panel-section">
-      <h3>Os 10 blocos da página</h3>
-      <div class="blocks-list">
-        ${BLOCOS.map(b => `
-          <div class="block-item">
-            <div class="block-num">${b.n}</div>
-            <div class="block-body">
-              <div class="block-title">${b.titulo}</div>
-              <div class="block-desc">${b.desc}</div>
-              <div class="block-resp">${b.resp}</div>
+      ${arteBlock}
+
+      <div class="panel-section">
+        <h3>URL do pacote</h3>
+        <div class="link-block">https://${slugFull}</div>
+        <button class="copy-btn" onclick="copiar('https://${slugFull}', this)">Copiar URL</button>
+      </div>
+
+      <div class="panel-section">
+        <h3>Link de reserva</h3>
+        <div class="link-block">${url}</div>
+        <button class="copy-btn green" onclick="copiar(${JSON.stringify(url)}, this)">Copiar link de reserva</button>
+        <div style="font-size:11px;color:var(--muted);margin-top:8px">
+          Motor oficial Omnibees com check-in e check-out já preenchidos.
+        </div>
+      </div>
+    `
+    : `
+      <button class="close" onclick="fecharPanel()">×</button>
+      <h2>${p.nome}</h2>
+      <div class="panel-meta">
+        <span class="badge badge-st-${stKey(p.status)}">${p.status}</span>
+        <span style="margin-left:8px">${fmtPretty(p.inicio)} a ${fmtPretty(p.fim)} (${dias} dias)</span>
+      </div>
+      <div class="panel-actions">
+        <button class="btn-secondary" onclick="abrirForm(${p.id})">✎ Editar</button>
+        <button class="btn-danger" onclick="removerPacote(${p.id})">🗑 Excluir</button>
+      </div>
+
+      ${arteBlock}
+
+      <div class="panel-section">
+        <h3>Resumo</h3>
+        <div class="panel-row"><span class="label">Categoria</span><span class="value">${p.categoria}</span></div>
+        <div class="panel-row"><span class="label">Slug URL</span><span class="value">${p.slug}</span></div>
+        <div class="panel-row"><span class="label">Preço (modelo)</span><span class="value">R$ ${p.preco.toLocaleString("pt-BR")}</span></div>
+        <div class="panel-row"><span class="label">Parcelamento</span><span class="value">10x R$ ${parcela.toLocaleString("pt-BR")}</span></div>
+        ${p.notas ? `<div class="panel-row"><span class="label">Notas</span><span class="value" style="text-align:right">${p.notas}</span></div>` : ``}
+      </div>
+
+      <div class="panel-section">
+        <h3>Status das entregas <span style="font-weight:400;text-transform:none;font-size:10px;letter-spacing:0;color:var(--muted)">(clique pra alternar)</span></h3>
+        ${inputsRows}
+      </div>
+
+      <div class="panel-section">
+        <h3>URL completa do site</h3>
+        <div class="link-block">https://${slugFull}</div>
+        <button class="copy-btn" onclick="copiar('https://${slugFull}', this)">Copiar URL</button>
+      </div>
+
+      <div class="panel-section">
+        <h3>Link de reserva (OmniBees)</h3>
+        <div class="link-block">${url}</div>
+        <button class="copy-btn green" onclick="copiar(${JSON.stringify(url)}, this)">Copiar link de reserva</button>
+        <div style="font-size:11px;color:var(--muted);margin-top:8px">
+          Motor de reservas oficial do China Park (Omnibees) com check-in e check-out já preenchidos.
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <h3>Os 10 blocos da página</h3>
+        <div class="blocks-list">
+          ${BLOCOS.map(b => `
+            <div class="block-item">
+              <div class="block-num">${b.n}</div>
+              <div class="block-body">
+                <div class="block-title">${b.titulo}</div>
+                <div class="block-desc">${b.desc}</div>
+                <div class="block-resp">${b.resp}</div>
+              </div>
             </div>
-          </div>
-        `).join("")}
+          `).join("")}
+        </div>
       </div>
-    </div>
 
-    <div class="panel-section">
-      <h3>Regras</h3>
-      <div style="font-size:12px;color:var(--muted);line-height:1.6">
-        URLs no padrão <code>chinapark.com.br/tarifas/pacote-[nome]</code>.<br>
-        Meta description sem datas. Sem travessões. Sem "vagas limitadas". Sem superlativos.
-        Dois links de reserva por página (banner de datas + CTA final).
-        Preço parcelado em destaque (vermelho ou cor do evento).
+      <div class="panel-section">
+        <h3>Regras</h3>
+        <div style="font-size:12px;color:var(--muted);line-height:1.6">
+          URLs no padrão <code>chinapark.com.br/tarifas/pacote-[nome]</code>.<br>
+          Meta description sem datas. Sem travessões. Sem "vagas limitadas". Sem superlativos.
+          Dois links de reserva por página (banner de datas + CTA final).
+          Preço parcelado em destaque (vermelho ou cor do evento).
+        </div>
       </div>
-    </div>
-  `;
+    `;
   document.getElementById("overlay").classList.add("show");
 }
 
@@ -1308,7 +1442,7 @@ function toggleFormInput(el) {
   el.textContent = txt;
 }
 
-function salvarForm() {
+async function salvarForm() {
   const f = document.getElementById("form-pacote");
   if (!f.reportValidity()) return;
   const data = Object.fromEntries(new FormData(f).entries());
@@ -1338,36 +1472,45 @@ function salvarForm() {
   };
 
   const idx = PACOTES.findIndex(x => x.id === id);
-  if (idx >= 0) PACOTES[idx] = novo;
-  else PACOTES.push(novo);
+  if (idx >= 0) {
+    // Preserva campos que o form não edita (links Drive, programacao, _uuid)
+    novo._uuid = PACOTES[idx]._uuid;
+    novo.arte_link = PACOTES[idx].arte_link;
+    novo.banner_link = PACOTES[idx].banner_link;
+    novo.imagem_diretora_link = PACOTES[idx].imagem_diretora_link;
+    novo.copy_link = PACOTES[idx].copy_link;
+    novo.programacao = PACOTES[idx].programacao;
+    PACOTES[idx] = novo;
+  } else {
+    PACOTES.push(novo);
+  }
 
-  // Mover cursor pro mês do pacote
   state.cursor = parseDate(novo.inicio);
   state.cursor.setDate(1);
 
-  salvarPacotes();
+  await salvarPacoteRemoto(novo);
   fecharPanel();
   render();
 }
 
-function removerPacote(id) {
+async function removerPacote(id) {
   const p = PACOTES.find(x => x.id === id);
   if (!p) return;
   if (!confirm(`Excluir "${p.nome}"? Essa ação não pode ser desfeita.`)) return;
   PACOTES = PACOTES.filter(x => x.id !== id);
-  salvarPacotes();
+  await excluirPacoteRemoto(id);
   fecharPanel();
   render();
 }
 
-function toggleInput(id, key) {
+async function toggleInput(id, key) {
   const p = PACOTES.find(x => x.id === id);
   if (!p) return;
   const cur = p.inputs[key];
   p.inputs[key] = cur === "pend" ? "rev" : cur === "rev" ? "ok" : "pend";
-  salvarPacotes();
-  abrirPanel(id); // re-render painel
-  render();       // re-render lista/calendário
+  await salvarPacoteRemoto(p);
+  abrirPanel(id);
+  render();
 }
 
 function exportarJSON() {
@@ -1449,7 +1592,25 @@ function render() {
   renderCalGrid();
   renderPkgList();
 }
-render();
+
+// Loading inicial — render placeholder, depois carrega do Supabase
+function renderLoading() {
+  document.getElementById("year-grid").innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--muted)">Carregando pacotes…</div>`;
+}
+renderLoading();
+
+(async () => {
+  await carregarPacotes();
+  render();
+
+  // Real-time: outros papéis editam, calendário atualiza sozinho
+  sb.channel("pacotes-changes")
+    .on("postgres_changes", { event: "*", schema: "public", table: "pacotes" }, async () => {
+      await carregarPacotes();
+      render();
+    })
+    .subscribe();
+})();
 </script>
 </body>
 </html>
