@@ -370,36 +370,52 @@ const CATS = {
   dayuse:  { label:'Chalé Particular / Day Use',     pulseiras:'Vermelha, Laranja',          adult:400, child:200, discount:true,  meals:['Café da tarde','Jantar','Café da manhã','Almoço'] },
 };
 
-// Preços especiais – Jantar Japonês 25/04
+// Preços especiais – Jantar Especial Dia dos Namorados (12 e 13/06, música ao vivo)
+// Mapeamento do informativo: Padrão=B · Branca=A · Day Use=C · Amarela=D (mantém tabela vigente)
 const CATS_ESPECIAL = {
-  padrao:  { label:'Cotista / Sócio / Proprietário', pulseiras:'Azul, Rosa, Verde, Dourada', adult:360, child:200, discount:true,  meals:['Café da tarde','🍣 Jantar Especial Japonês','Café da manhã','Almoço'] },
-  branca:  { label:'Pulseira Branca',                pulseiras:'Branca',                     adult:330, child:120, discount:true,  meals:['Café da tarde','🍣 Jantar Especial Japonês','Almoço'] },
+  padrao:  { label:'Cotista / Sócio / Proprietário', pulseiras:'Azul, Rosa, Verde, Dourada', adult:450, child:160, discount:true,  meals:['Café da tarde','🎵 Jantar Especial Dia dos Namorados','Café da manhã','Almoço'] },
+  branca:  { label:'Pulseira Branca',                pulseiras:'Branca',                     adult:350, child:140, discount:true,  meals:['Café da tarde','🎵 Jantar Especial Dia dos Namorados','Almoço'] },
   amarela: { label:'Pulseira Amarela',               pulseiras:'Amarela',                    adult:170, child:100, discount:false, meals:['Café da tarde','Almoço'] },
-  dayuse:  { label:'Chalé Particular / Day Use',     pulseiras:'Vermelha, Laranja',          adult:450, child:220, discount:true,  meals:['Café da tarde','🍣 Jantar Especial Japonês','Café da manhã','Almoço'] },
+  dayuse:  { label:'Chalé Particular / Day Use',     pulseiras:'Vermelha, Laranja',          adult:520, child:220, discount:true,  meals:['Café da tarde','🎵 Jantar Especial Dia dos Namorados','Café da manhã','Almoço'] },
 };
+
+// Datas com Jantar Especial Dia dos Namorados — uma diária especial por noite nessas datas
+const DATAS_ESPECIAIS = ['2026-06-12','2026-06-13'];
+
+// Lista as noites da estadia (data de cada diária = noite de check-in até a véspera do check-out)
+function noitesDaEstadia(ci, co) {
+  if (!ci || !co) return [];
+  const start = new Date(ci + 'T00:00:00');
+  const end   = new Date(co + 'T00:00:00');
+  const noites = [];
+  for (let d = new Date(start); d < end; d.setDate(d.getDate() + 1)) {
+    const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), dd=String(d.getDate()).padStart(2,'0');
+    noites.push(`${y}-${m}-${dd}`);
+  }
+  return noites;
+}
+
+// Quantas noites da estadia caem nas datas especiais
+function contarEspeciais(ci, co) {
+  return noitesDaEstadia(ci, co).filter(d => DATAS_ESPECIAIS.includes(d)).length;
+}
 
 function isDataEspecial() {
   const ci = document.getElementById('checkin').value;
   const co = document.getElementById('checkout').value;
   if (!ci || !co) return false;
-  const checkin  = new Date(ci + 'T00:00:00');
-  const checkout = new Date(co + 'T00:00:00');
-  const especial = new Date('2026-04-25T00:00:00');
-  return checkin <= especial && checkout > especial;
+  return contarEspeciais(ci, co) > 0;
 }
 
 function getDiariasEspecial() {
-  // Retorna { normal: N, especial: N } — quantas diárias de cada tipo
+  // Retorna { total, especial, normal } — quantas diárias de cada tipo
   const ci = document.getElementById('checkin').value;
   const co = document.getElementById('checkout').value;
   if (!ci || !co) return null;
-  const checkin  = new Date(ci + 'T00:00:00');
-  const checkout = new Date(co + 'T00:00:00');
-  const total = Math.round((checkout - checkin) / 86400000);
+  const total = Math.round((new Date(co + 'T00:00:00') - new Date(ci + 'T00:00:00')) / 86400000);
   if (total <= 0) return null;
-  const especial = new Date('2026-04-25T00:00:00');
-  const temEspecial = checkin <= especial && checkout > especial;
-  return { total, especial: temEspecial ? 1 : 0, normal: temEspecial ? total - 1 : total };
+  const esp = contarEspeciais(ci, co);
+  return { total, especial: esp, normal: total - esp };
 }
 
 let cat = 'padrao';
@@ -447,7 +463,7 @@ function calcular() {
   } else {
     let disc = n>=5&&p.discount?20:n>=3&&p.discount?10:0;
     let html = `<span class="badge badge-green">📅 ${n} diária${n>1?'s':''}</span>`;
-    if (especial) html += '<span class="badge badge-especial">🍣 Jantar Especial Japonês</span>';
+    if (especial) html += '<span class="badge badge-especial">🎵 Jantar Especial Dia dos Namorados</span>';
     html += !p.discount ? '<span class="badge badge-gold">sem desconto (pulseira amarela)</span>'
           : disc>0      ? `<span class="badge badge-green">🏷 ${disc}% de desconto</span>`
           :               '<span class="badge badge-muted">desconto a partir de 3 diárias</span>';
@@ -463,7 +479,7 @@ function calcular() {
       bannerEl.className = 'banner-especial';
       document.getElementById('diarias-info').after(bannerEl);
     }
-    bannerEl.innerHTML = `<strong>🍣 25/04 – Jantar Especial Japonês</strong><br>Valores de pensão ajustados para esta data. Informe ao cliente que o buffet terá opções variadas além da culinária japonesa.`;
+    bannerEl.innerHTML = `<strong>🎵 12 e 13/06 – Jantar Especial Dia dos Namorados</strong><br>Dois jantares especiais com música ao vivo. Os valores de pensão são diferenciados nessas diárias. Não haverá marcação de mesas.`;
   } else if (bannerEl) {
     bannerEl.remove();
   }
@@ -497,9 +513,9 @@ function calcular() {
 
   let rows='';
   if (tot_ad>0 && split.normal>0)   rows+=`<div class="br-row"><span>${tot_ad} adulto${tot_ad>1?'s':''} × ${fmt(pNorm.adult)} × ${split.normal} diária${split.normal>1?'s':''}</span><span class="val">${fmt(sub_ad_norm)}</span></div>`;
-  if (tot_ad>0 && split.especial>0) rows+=`<div class="br-row"><span>${tot_ad} adulto${tot_ad>1?'s':''} × ${fmt(pEsp.adult)} × 1 diária <span style="color:#b35000;font-size:11px">🍣 25/04</span></span><span class="val">${fmt(sub_ad_esp)}</span></div>`;
+  if (tot_ad>0 && split.especial>0) rows+=`<div class="br-row"><span>${tot_ad} adulto${tot_ad>1?'s':''} × ${fmt(pEsp.adult)} × ${split.especial} diária${split.especial>1?'s':''} <span style="color:#b35000;font-size:11px">🎵 12-13/06</span></span><span class="val">${fmt(sub_ad_esp)}</span></div>`;
   if (tot_ch>0 && split.normal>0)   rows+=`<div class="br-row"><span>${tot_ch} criança${tot_ch>1?'s':''} (6–11) × ${fmt(pNorm.child)} × ${split.normal} diária${split.normal>1?'s':''}</span><span class="val">${fmt(sub_ch_norm)}</span></div>`;
-  if (tot_ch>0 && split.especial>0) rows+=`<div class="br-row"><span>${tot_ch} criança${tot_ch>1?'s':''} (6–11) × ${fmt(pEsp.child)} × 1 diária <span style="color:#b35000;font-size:11px">🍣 25/04</span></span><span class="val">${fmt(sub_ch_esp)}</span></div>`;
+  if (tot_ch>0 && split.especial>0) rows+=`<div class="br-row"><span>${tot_ch} criança${tot_ch>1?'s':''} (6–11) × ${fmt(pEsp.child)} × ${split.especial} diária${split.especial>1?'s':''} <span style="color:#b35000;font-size:11px">🎵 12-13/06</span></span><span class="val">${fmt(sub_ch_esp)}</span></div>`;
   if (tot_free>0) rows+=`<div class="br-row free"><span>${tot_free} criança${tot_free>1?'s':''} (0–5 anos)</span><span class="val">Gratuito</span></div>`;
   const discRow = discPct>0 ? `<div class="br-row discount"><span>Desconto ${discPct}% (${n} diárias)</span><span class="val">− ${fmt(desconto)}</span></div>` : '';
   const noDiscNote = cat==='amarela' ? `<div class="no-disc-note">⚠️ Pulseira amarela não possui desconto por quantidade de diárias.</div>` : '';
@@ -531,9 +547,9 @@ function gerarPdf() {
 
   let tRows = '';
   if (tot_ad>0 && split.normal>0)   tRows+=`<tr><td>Adulto${tot_ad>1?'s':''} (12+ anos)</td><td class="right">${tot_ad}</td><td class="right">${split.normal}</td><td class="right">${fmt(pNorm.adult)}</td><td class="right">${fmt(sub_ad_norm)}</td></tr>`;
-  if (tot_ad>0 && split.especial>0) tRows+=`<tr><td>Adulto${tot_ad>1?'s':''} – 🍣 Jantar Japonês (25/04)</td><td class="right">${tot_ad}</td><td class="right">1</td><td class="right">${fmt(pEsp.adult)}</td><td class="right">${fmt(sub_ad_esp)}</td></tr>`;
+  if (tot_ad>0 && split.especial>0) tRows+=`<tr><td>Adulto${tot_ad>1?'s':''} – 🎵 Jantar Namorados (12-13/06)</td><td class="right">${tot_ad}</td><td class="right">${split.especial}</td><td class="right">${fmt(pEsp.adult)}</td><td class="right">${fmt(sub_ad_esp)}</td></tr>`;
   if (tot_ch>0 && split.normal>0)   tRows+=`<tr><td>Criança${tot_ch>1?'s':''} (6–11 anos)</td><td class="right">${tot_ch}</td><td class="right">${split.normal}</td><td class="right">${fmt(pNorm.child)}</td><td class="right">${fmt(sub_ch_norm)}</td></tr>`;
-  if (tot_ch>0 && split.especial>0) tRows+=`<tr><td>Criança${tot_ch>1?'s':''} (6–11) – 🍣 Jantar Japonês (25/04)</td><td class="right">${tot_ch}</td><td class="right">1</td><td class="right">${fmt(pEsp.child)}</td><td class="right">${fmt(sub_ch_esp)}</td></tr>`;
+  if (tot_ch>0 && split.especial>0) tRows+=`<tr><td>Criança${tot_ch>1?'s':''} (6–11) – 🎵 Jantar Namorados (12-13/06)</td><td class="right">${tot_ch}</td><td class="right">${split.especial}</td><td class="right">${fmt(pEsp.child)}</td><td class="right">${fmt(sub_ch_esp)}</td></tr>`;
   if (tot_free>0) tRows+=`<tr class="free-row"><td>Criança${tot_free>1?'s':''} (0–5 anos)</td><td class="right">${tot_free}</td><td class="right">${n}</td><td class="right">—</td><td class="right">Gratuito</td></tr>`;
   if (discPct>0)  tRows+=`<tr class="discount-row"><td colspan="4">Desconto ${discPct}% (${n} diárias)</td><td class="right">− ${fmt(desconto)}</td></tr>`;
 
@@ -554,7 +570,7 @@ function gerarPdf() {
         <div class="pa-info-item"><div class="lbl">Check-in</div><div class="val">${fmtDate(ci)}</div></div>
         <div class="pa-info-item"><div class="lbl">Check-out</div><div class="val">${fmtDate(co)}</div></div>
         <div class="pa-info-item"><div class="lbl">Diárias</div><div class="val">${n} diária${n>1?'s':''}</div></div>
-        <div class="pa-info-item"><div class="lbl">Categoria / Pulseira</div><div class="val">${p.label}</div></div>
+        <div class="pa-info-item"><div class="lbl">Categoria / Pulseira</div><div class="val">${CATS[cat].label}</div></div>
       </div>
     </div>
     <div class="pa-section">
