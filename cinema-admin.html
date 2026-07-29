@@ -120,7 +120,6 @@ textarea.sess-input{resize:vertical;min-height:56px;font-size:11.5px;line-height
 </div>
 <script>
 var SK='cp_cinema';
-var PASS='china2024';
 var ORDER=[1,2,3,4,5,6,0];
 var DS={0:'DOM',1:'SEG',2:'TER',3:'QUA',4:'QUI',5:'SEX',6:'SAB'};
 var DS_LONG={0:'Domingo',1:'Segunda-Feira',2:'Terça-Feira',3:'Quarta-Feira',4:'Quinta-Feira',5:'Sexta-Feira',6:'Sábado'};
@@ -136,17 +135,15 @@ var gs=loadState();
 var curDay=new Date().getDay();
 var inPrint=false;
 
+// Autenticação é server-side (Edge Middleware + /api/login). Sem senha no código.
 function doLogin(){
-  if(document.getElementById('pw').value===PASS){
-    document.getElementById('lock').style.display='none';
-    document.getElementById('panel').style.display='flex';
-    renderAdmin();
-  }else{document.getElementById('pw-err').textContent='Senha incorreta';}
+  document.getElementById('lock').style.display='none';
+  document.getElementById('panel').style.display='flex';
+  renderAdmin();
 }
+document.addEventListener('DOMContentLoaded',doLogin);
 function doLogout(){
-  document.getElementById('panel').style.display='none';
-  document.getElementById('lock').style.display='flex';
-  document.getElementById('pw').value='';
+  fetch('/api/logout',{method:'POST'}).finally(function(){location.href='/login.html';});
 }
 
 function collectSessions(){

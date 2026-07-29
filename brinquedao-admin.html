@@ -202,7 +202,6 @@ html,body{min-height:100%;font-family:'Nunito',sans-serif;color:var(--text);back
 </div>
 
 <script>
-const PASS = 'china2024';
 const SK   = 'cp_brinquedao';
 
 // ── localStorage helpers ─────────────────────────────────────────
@@ -221,19 +220,15 @@ async function removeKid(id){
   _save(_load().filter(k=>k.id!=id));
 }
 
+// Autenticação é server-side (Edge Middleware + /api/login). Sem senha no código.
 function doLogin(){
-  if(document.getElementById('pw').value===PASS){
-    sessionStorage.setItem('b_auth','1');
-    document.getElementById('lock').style.display='none';
-    document.getElementById('panel').style.display='flex';
-    render();
-  }else{document.getElementById('pw-err').textContent='Senha incorreta';}
+  document.getElementById('lock').style.display='none';
+  document.getElementById('panel').style.display='flex';
+  render();
 }
+document.addEventListener('DOMContentLoaded',doLogin);
 function doLogout(){
-  sessionStorage.removeItem('b_auth');
-  document.getElementById('panel').style.display='none';
-  document.getElementById('lock').style.display='flex';
-  document.getElementById('pw').value='';
+  fetch('/api/logout',{method:'POST'}).finally(function(){location.href='/login.html';});
 }
 
 const COLORS=[['rgba(26,32,64,.1)','#1A2040'],['rgba(240,160,20,.18)','#7A4F00'],['rgba(46,125,82,.12)','#1B6B45'],['rgba(192,57,43,.1)','#8B1A10'],['rgba(107,100,128,.12)','#3D375A']];

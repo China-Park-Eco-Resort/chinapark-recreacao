@@ -185,17 +185,14 @@ html,body{min-height:100%;font-family:'Nunito',sans-serif;color:var(--text);back
   </div>
 </div>
 <script>
-var PASS='china2024';
+// Autenticação é server-side (Edge Middleware + /api/login). Sem senha no código.
 function doLogin(){
-  if(document.getElementById('pw').value===PASS){
-    document.getElementById('lock').style.display='none';
-    document.getElementById('panel').style.display='flex';
-  }else{document.getElementById('pw-err').textContent='Senha incorreta';}
+  document.getElementById('lock').style.display='none';
+  document.getElementById('panel').style.display='flex';
 }
+document.addEventListener('DOMContentLoaded',doLogin);
 function doLogout(){
-  document.getElementById('panel').style.display='none';
-  document.getElementById('lock').style.display='flex';
-  document.getElementById('pw').value='';
+  fetch('/api/logout',{method:'POST'}).finally(function(){location.href='/login.html';});
 }
 function copyUrl(url,btn){
   navigator.clipboard.writeText('https://'+url).then(function(){

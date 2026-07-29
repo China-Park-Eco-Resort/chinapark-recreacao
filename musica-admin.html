@@ -94,7 +94,6 @@ html,body{min-height:100%}
 </div>
 <script>
 var SK='cp_musica';
-var PASS='china2024';
 var BASE_SHOWS=[{"data": "02/04", "artista": "Dinho Netto", "hora": "20h00", "genero": ""}, {"data": "04/04", "artista": "Leo e Mony", "hora": "20h00", "genero": ""}, {"data": "06/04", "artista": "Lilian Lomeu", "hora": "20h00", "genero": ""}, {"data": "11/04", "artista": "Fabiano Juffu", "hora": "20h00", "genero": ""}, {"data": "12/04", "artista": "Lilian Lomeu", "hora": "20h00", "local": "Centro Gourmet", "genero": ""}, {"data": "18/04", "artista": "Erick e Eduardo", "hora": "20h00", "genero": ""}, {"data": "20/04", "artista": "Dinho Netto", "hora": "20h00", "genero": ""}, {"data": "25/04", "artista": "Lilian Lomeu", "hora": "20h00", "genero": ""}, {"data": "27/04", "artista": "Makson Cora", "hora": "20h00", "genero": ""}];
 
 function loadShows(){try{var x=localStorage.getItem(SK);if(x)return JSON.parse(x);}catch(e){}return JSON.parse(JSON.stringify(BASE_SHOWS));}
@@ -103,11 +102,12 @@ function saveShows(s){try{localStorage.setItem(SK,JSON.stringify(s));}catch(e){}
 var gs=loadShows();
 var inPrint=false;
 
-function doLogin(){
-  if(document.getElementById('pw').value===PASS){document.getElementById('lock').style.display='none';document.getElementById('panel').style.display='flex';renderAdmin();}
-  else document.getElementById('pw-err').textContent='Senha incorreta';
+// Autenticação é server-side (Edge Middleware + /api/login). Sem senha no código.
+function doLogin(){document.getElementById('lock').style.display='none';document.getElementById('panel').style.display='flex';renderAdmin();}
+document.addEventListener('DOMContentLoaded',doLogin);
+function doLogout(){
+  fetch('/api/logout',{method:'POST'}).finally(function(){location.href='/login.html';});
 }
-function doLogout(){document.getElementById('panel').style.display='none';document.getElementById('lock').style.display='flex';document.getElementById('pw').value='';}
 
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 

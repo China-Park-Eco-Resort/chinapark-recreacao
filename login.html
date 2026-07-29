@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>China Park · Acesso</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Nunito',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#1A2040;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+  .card{background:#fff;border-radius:16px;padding:40px 32px;max-width:380px;width:100%;text-align:center;box-shadow:0 16px 48px rgba(0,0,0,.4);border-top:4px solid #F0A014}
+  .card img{width:140px;margin-bottom:20px}
+  h1{font-size:1.25rem;color:#1A2040;margin-bottom:6px}
+  p.sub{color:#6b7280;font-size:.9rem;margin-bottom:22px}
+  input{width:100%;padding:13px 14px;border:2px solid #d5d9e2;border-radius:10px;font-size:1rem;font-family:inherit;outline:none;text-align:center}
+  input:focus{border-color:#F0A014}
+  button{width:100%;margin-top:12px;padding:13px;border:0;border-radius:10px;background:#1A2040;color:#fff;font-size:1rem;font-weight:700;font-family:inherit;cursor:pointer}
+  button:hover{background:#252c56}
+  button:disabled{opacity:.6;cursor:default}
+  .err{color:#c0392b;font-size:.85rem;margin-top:10px;min-height:1.2em}
+</style>
+</head>
+<body>
+  <form class="card" id="f">
+    <img src="logo-chinapark.png" alt="China Park">
+    <h1>Área restrita</h1>
+    <p class="sub">Digite a senha da equipe para continuar</p>
+    <input type="password" id="pw" placeholder="Senha" autocomplete="current-password" autofocus required>
+    <button type="submit" id="btn">Entrar</button>
+    <div class="err" id="err"></div>
+  </form>
+<script>
+document.getElementById('f').addEventListener('submit', async function(e){
+  e.preventDefault();
+  var btn=document.getElementById('btn'), err=document.getElementById('err');
+  btn.disabled=true; btn.textContent='Entrando…'; err.textContent='';
+  try{
+    var res=await fetch('/api/login',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({password:document.getElementById('pw').value})
+    });
+    if(res.ok){
+      var p=new URLSearchParams(location.search).get('next')||'/portal.html';
+      if(!/^\/[A-Za-z0-9_\-./]*$/.test(p)||p.indexOf('//')===0) p='/portal.html';
+      location.href=p;
+      return;
+    }
+    var data=await res.json().catch(function(){return {};});
+    err.textContent=data.error||'Senha incorreta';
+  }catch(_){ err.textContent='Erro de conexão. Tente novamente.'; }
+  btn.disabled=false; btn.textContent='Entrar';
+});
+</script>
+</body>
+</html>
