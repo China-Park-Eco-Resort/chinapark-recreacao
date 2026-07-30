@@ -9,7 +9,6 @@ export const config = {
     '/cinema-admin.html',
     '/musica-admin.html',
     '/brinquedao-admin.html',
-    '/calculadora-pensao-completa.html',
     '/conceito-a.html',
     '/conceito-b.html',
   ],
