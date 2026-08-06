@@ -9,6 +9,7 @@ export const config = {
     '/cinema-admin.html',
     '/musica-admin.html',
     '/brinquedao-admin.html',
+    '/guia-admin.html',
     '/conceito-a.html',
     '/conceito-b.html',
   ],
