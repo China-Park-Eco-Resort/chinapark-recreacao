@@ -7,7 +7,7 @@ function sessionToken(secret) {
   return crypto.createHmac('sha256', secret).update('cp-auth-v1').digest('hex');
 }
 
-const CHAVES = ['programacao', 'jantares', 'feriados'];
+const CHAVES = ['programacao', 'jantares', 'feriados', 'guia'];
 
 module.exports = async (req, res) => {
   if (req.method !== 'POST') {
@@ -31,7 +31,7 @@ module.exports = async (req, res) => {
   const chave = req.body && req.body.chave;
   const dados = req.body && req.body.dados;
   if (!CHAVES.includes(chave) || dados === undefined) {
-    return res.status(400).json({ error: 'Informe chave (programacao|jantares|feriados) e dados' });
+    return res.status(400).json({ error: 'Informe chave (programacao|jantares|feriados|guia) e dados' });
   }
 
   try {
