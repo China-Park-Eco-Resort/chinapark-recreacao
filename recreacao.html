@@ -132,8 +132,21 @@ function getCurIdx(state,f,d){
 
 var gs=loadState();
 var jantaresData=loadJT();
+var feriadosData=[];
 var curDay=new Date().getDay();
 var curFaixa='adulto';
+
+// Fonte da verdade: servidor (/api/recreacao). O BASE embutido é só o
+// primeiro quadro enquanto a resposta não chega (e fallback offline).
+function carregarServidor(){
+  fetch('/api/recreacao',{cache:'no-store'}).then(function(r){return r.json();}).then(function(d){
+    if(!d)return;
+    if(d.programacao)gs=d.programacao;
+    if(d.jantares)jantaresData=d.jantares;
+    if(Array.isArray(d.feriados))feriadosData=d.feriados;
+    renderDaySel();renderFaixaBar();renderCurrentView();
+  }).catch(function(){});
+}
 
 // ── RENDER DAY SELECTOR ──────────────────────────────────────────────────
 function renderDaySel(){
@@ -159,7 +172,7 @@ function selectDay(d){
 // ── RENDER FAIXA TAB BAR based on selected day ───────────────────────────
 function renderFaixaBar(){
   var fb=document.getElementById('faixa-bar');fb.innerHTML='';
-  var isWeekday=INFANTIL_DAYS.indexOf(curDay)!==-1;
+  var isWeekday=INFANTIL_DAYS.indexOf(curDay)!==-1&&feriadosData.indexOf(curDay)===-1;
   var tabs=isWeekday
     ?[{f:'infantil',label:'Infantil'},{f:'adulto',label:'13+ Adulto'},{f:'jantares',label:'Jantares'}]
     :[{f:'46',label:'4–6 anos'},{f:'712',label:'7–12 anos'},{f:'adulto',label:'13+ Adulto'},{f:'jantares',label:'Jantares'}];
@@ -239,11 +252,8 @@ renderDaySel();
 renderFaixaBar();
 renderCurrentView();
 
-setInterval(function(){
-  gs=loadState();
-  jantaresData=loadJT();
-  renderCurrentView();
-},60000);
+carregarServidor();
+setInterval(carregarServidor,60000);
 </script>
 </body>
 </html>

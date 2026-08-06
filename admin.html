@@ -308,8 +308,33 @@ var inPrint=false;
 // Dias da semana marcados como feriado (ex: [1,4] = Seg e Qui)
 var SK_FER='cp_feriados';
 function loadFeriados(){try{var x=localStorage.getItem(SK_FER);if(x)return JSON.parse(x);}catch(e){}return[];}
-function saveFeriados(arr){try{localStorage.setItem(SK_FER,JSON.stringify(arr));}catch(e){}}
+function saveFeriados(arr){try{localStorage.setItem(SK_FER,JSON.stringify(arr));}catch(e){}publicar('feriados',arr).catch(publicarErro);}
 var feriados=loadFeriados();
+
+// Fonte da verdade: servidor. localStorage vira só cache/fallback offline.
+function carregarServidor(){
+  fetch('/api/recreacao',{cache:'no-store'}).then(function(r){return r.json();}).then(function(d){
+    if(!d)return;
+    if(d.programacao){aState=d.programacao;saveState(aState);}
+    if(d.jantares){jantares=d.jantares;try{localStorage.setItem(SK_JT,JSON.stringify(jantares));}catch(e){}}
+    if(Array.isArray(d.feriados)){feriados=d.feriados;try{localStorage.setItem(SK_FER,JSON.stringify(feriados));}catch(e){}}
+    renderAdmin();
+  }).catch(function(){});
+}
+document.addEventListener('DOMContentLoaded',carregarServidor);
+
+function publicar(chave,dados){
+  return fetch('/api/recreacao-salvar',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({chave:chave,dados:dados})
+  }).then(function(r){
+    if(!r.ok)throw new Error('HTTP '+r.status);
+  });
+}
+function publicarErro(){
+  alert('Não foi possível publicar no servidor — a alteração ficou salva só neste aparelho. Verifique a internet e clique em Salvar de novo.');
+}
 
 // ── AUTH ─────────────────────────────────────────────────────────
 // Autenticação é server-side (Edge Middleware + /api/login). Sem senha no código.
@@ -513,16 +538,26 @@ function onFaixaChange(){
 // ── SAVE ─────────────────────────────────────────────────────────
 function doSave(){
   collectCurrentView();
+  var chave,dados;
   if(curFaixa==='jantares'){
     saveJT(JSON.parse(JSON.stringify(jantares)));
+    chave='jantares';dados=jantares;
   } else {
     var snap=JSON.parse(JSON.stringify(aState));
     saveState(snap);
     aState=snap;
+    chave='programacao';dados=aState;
   }
   var b=document.getElementById('save-btn');
-  b.textContent='Publicado!'; b.style.background='var(--green)';
-  setTimeout(function(){b.textContent='Salvar e publicar';b.style.background='';},2500);
+  b.textContent='Publicando…';
+  publicar(chave,dados).then(function(){
+    b.textContent='Publicado!'; b.style.background='var(--green)';
+    setTimeout(function(){b.textContent='Salvar e publicar';b.style.background='';},2500);
+  }).catch(function(){
+    b.textContent='Falha ao publicar'; b.style.background='var(--red, #c0392b)';
+    setTimeout(function(){b.textContent='Salvar e publicar';b.style.background='';},4000);
+    publicarErro();
+  });
 }
 
 // ── PRINT ────────────────────────────────────────────────────────
