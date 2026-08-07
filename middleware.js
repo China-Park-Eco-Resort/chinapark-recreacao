@@ -3,15 +3,16 @@
 // O cookie cp_sess é um HMAC assinado com AUTH_SECRET, emitido por /api/login.
 
 export const config = {
+  // com cleanUrls, as páginas atendem com e sem .html — proteger as duas formas
   matcher: [
-    '/portal.html',
-    '/admin.html',
-    '/cinema-admin.html',
-    '/musica-admin.html',
-    '/brinquedao-admin.html',
-    '/guia-admin.html',
-    '/conceito-a.html',
-    '/conceito-b.html',
+    '/portal', '/portal.html',
+    '/admin', '/admin.html',
+    '/cinema-admin', '/cinema-admin.html',
+    '/musica-admin', '/musica-admin.html',
+    '/brinquedao-admin', '/brinquedao-admin.html',
+    '/guia-admin', '/guia-admin.html',
+    '/conceito-a', '/conceito-a.html',
+    '/conceito-b', '/conceito-b.html',
   ],
 };
 
