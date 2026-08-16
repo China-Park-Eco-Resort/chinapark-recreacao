@@ -187,7 +187,7 @@ function doLogin(){
 }
 document.addEventListener('DOMContentLoaded',doLogin);
 function doLogout(){
-  fetch('/api/logout',{method:'POST'}).finally(function(){location.href='/login.html';});
+  fetch('/api/logout',{method:'POST'}).finally(function(){location.href='/admin/login';});
 }
 function copyUrl(url,btn){
   navigator.clipboard.writeText('https://'+url).then(function(){

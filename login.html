@@ -42,7 +42,7 @@ document.getElementById('f').addEventListener('submit', async function(e){
     });
     if(res.ok){
       var p=new URLSearchParams(location.search).get('next')||'/admin';
-      if(!/^\/[A-Za-z0-9_\-./]*$/.test(p)||p.indexOf('//')===0) p='/portal.html';
+      if(!/^\/[A-Za-z0-9_\-./]*$/.test(p)||p.indexOf('//')===0) p='/admin';
       location.href=p;
       return;
     }

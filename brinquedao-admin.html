@@ -309,7 +309,7 @@ function showBar(id,msg){
 // QR
 let qrDone=false;
 function openQR(){
-  const url=location.href.replace('brinquedao-admin.html','brinquedao-cadastro.html');
+  const url=location.origin+'/brinquedao-cadastro';
   document.getElementById('qr-url-text').textContent=url;
   if(!qrDone){new QRCode(document.getElementById('qrcode'),{text:url,width:180,height:180,colorDark:'#1A2040',colorLight:'#ffffff'});qrDone=true;}
   document.getElementById('qr-sheet').classList.add('open');
