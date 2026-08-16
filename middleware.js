@@ -12,7 +12,10 @@ export const config = {
     '/',
     '/admin', '/admin/:path*',
     // arquivos internos NÃO são acessíveis pelo nome — só via /admin/*
-    '/admin-:file*',
+    '/admin-portal', '/admin-portal.html', '/admin-recreacao', '/admin-recreacao.html',
+    '/admin-cinema', '/admin-cinema.html', '/admin-musica', '/admin-musica.html',
+    '/admin-brinquedao', '/admin-brinquedao.html', '/admin-guia', '/admin-guia.html',
+    '/admin-login', '/admin-login.html',
     '/conceito-a', '/conceito-a.html',
     '/conceito-b', '/conceito-b.html',
     '/calculadora-pensao-completa', '/calculadora-pensao-completa.html',
