@@ -58,9 +58,7 @@ export default async function middleware(request) {
   const host = (request.headers.get('host') || '').toLowerCase();
   const path = url.pathname;
 
-  if (host === 'www.tonochinapark.com.br') {
-    return Response.redirect(new URL(path + url.search, 'https://tonochinapark.com.br'), 308);
-  }
+  // www → raiz é feito no domínio (Vercel, 308) — nada a fazer aqui
 
   // raiz = Guia do Hóspede
   if (path === '/') return Response.redirect(new URL('/guia', url), 302);
