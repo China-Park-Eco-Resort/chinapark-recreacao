@@ -1,13 +1,37 @@
 {
   "cleanUrls": true,
   "rewrites": [
-    { "source": "/admin",              "destination": "/admin-portal.html" },
-    { "source": "/admin/recreacao",    "destination": "/admin-recreacao.html" },
-    { "source": "/admin/cinema",       "destination": "/admin-cinema.html" },
-    { "source": "/admin/musica",       "destination": "/admin-musica.html" },
-    { "source": "/admin/brinquedao",   "destination": "/admin-brinquedao.html" },
-    { "source": "/admin/guia",         "destination": "/admin-guia.html" },
-    { "source": "/admin/login",        "destination": "/admin-login.html" },
-    { "source": "/admin/calculadora",  "destination": "/calculadora-pensao-completa.html" }
+    {
+      "source": "/admin",
+      "destination": "/admin-portal"
+    },
+    {
+      "source": "/admin/recreacao",
+      "destination": "/admin-recreacao"
+    },
+    {
+      "source": "/admin/cinema",
+      "destination": "/admin-cinema"
+    },
+    {
+      "source": "/admin/musica",
+      "destination": "/admin-musica"
+    },
+    {
+      "source": "/admin/brinquedao",
+      "destination": "/admin-brinquedao"
+    },
+    {
+      "source": "/admin/guia",
+      "destination": "/admin-guia"
+    },
+    {
+      "source": "/admin/login",
+      "destination": "/admin-login"
+    },
+    {
+      "source": "/admin/calculadora",
+      "destination": "/calculadora-pensao-completa"
+    }
   ]
 }
