@@ -75,14 +75,14 @@ html,body{min-height:100%;font-family:'Nunito',sans-serif;color:var(--text);back
         <h1>Portal</h1>
         <p>China Park Eco Resort</p>
       </div>
-      <button class="btn-logout" onclick="doLogout()">Sair</button>
+      <span id="papel-tag" style="font-size:11px;color:rgba(255,255,255,.7);margin-right:10px"></span><button class="btn-logout" onclick="doLogout()">Sair</button>
     </div>
 
     <div class="content">
       <div class="section-title">Módulos de Administração</div>
       <div class="modules">
 
-        <a class="mod-card gold" href="/admin/guia">
+        <a class="mod-card gold" href="/admin/guia" data-papel="recepcao">
           <div class="mod-header">
             <div class="mod-icon">🧭</div>
             <div class="mod-info">
@@ -92,7 +92,7 @@ html,body{min-height:100%;font-family:'Nunito',sans-serif;color:var(--text);back
             <div class="mod-arrow">›</div>
           </div>
         </a>
-        <a class="mod-card green" href="/admin/recreacao">
+        <a class="mod-card green" href="/admin/recreacao" data-papel="recepcao recreacao">
           <div class="mod-header">
             <div class="mod-icon">🎪</div>
             <div class="mod-info">
@@ -103,7 +103,7 @@ html,body{min-height:100%;font-family:'Nunito',sans-serif;color:var(--text);back
           </div>
         </a>
 
-        <a class="mod-card gold" href="/admin/cinema">
+        <a class="mod-card gold" href="/admin/cinema" data-papel="recepcao recreacao">
           <div class="mod-header">
             <div class="mod-icon">🎬</div>
             <div class="mod-info">
@@ -114,7 +114,7 @@ html,body{min-height:100%;font-family:'Nunito',sans-serif;color:var(--text);back
           </div>
         </a>
 
-        <a class="mod-card" style="border-left:none" href="/admin/musica">
+        <a class="mod-card" style="border-left:none" href="/admin/musica" data-papel="recepcao">
           <div class="mod-header" style="border-left:3px solid #C8973A">
             <div class="mod-icon">🎵</div>
             <div class="mod-info">
@@ -125,7 +125,7 @@ html,body{min-height:100%;font-family:'Nunito',sans-serif;color:var(--text);back
           </div>
         </a>
 
-        <a class="mod-card" style="border-left:none" href="/admin/brinquedao">
+        <a class="mod-card" style="border-left:none" href="/admin/brinquedao" data-papel="recepcao">
           <div class="mod-header" style="border-left:3px solid #2E7D52">
             <div class="mod-icon">🎠</div>
             <div class="mod-info">
@@ -138,8 +138,8 @@ html,body{min-height:100%;font-family:'Nunito',sans-serif;color:var(--text);back
 
       </div>
 
-      <div class="section-title">Links para Hóspedes — <span style="font-weight:400;opacity:.8">tonochinapark.com.br</span></div>
-      <div class="guest-section">
+      <div class="section-title" data-papel="recepcao">Links para Hóspedes — <span style="font-weight:400;opacity:.8">tonochinapark.com.br</span></div>
+      <div class="guest-section" data-papel="recepcao">
         <div class="guest-row">
           <div>
             <div class="guest-label">🧭 Guia do Hóspede (página inicial)</div>
@@ -184,6 +184,15 @@ html,body{min-height:100%;font-family:'Nunito',sans-serif;color:var(--text);back
 function doLogin(){
   document.getElementById('lock').style.display='none';
   document.getElementById('panel').style.display='flex';
+  fetch('/api/quem-sou',{cache:'no-store'}).then(function(r){return r.ok?r.json():null;}).then(function(d){
+    var papel=(d&&d.papel)||'recepcao';
+    var nomes={recepcao:'👩‍💼 Perfil: Recepção (acesso total)',recreacao:'🎪 Perfil: Recreação'};
+    document.getElementById('papel-tag').textContent=nomes[papel]||'';
+    document.querySelectorAll('[data-papel]').forEach(function(el){
+      var ok=el.getAttribute('data-papel').split(' ').indexOf(papel)!==-1;
+      if(!ok) el.style.display='none';
+    });
+  }).catch(function(){});
 }
 document.addEventListener('DOMContentLoaded',doLogin);
 function doLogout(){

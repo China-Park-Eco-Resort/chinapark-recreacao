@@ -32,6 +32,10 @@
     {
       "source": "/admin/calculadora",
       "destination": "/calculadora-pensao-completa"
+    },
+    {
+      "source": "/admin/sem-permissao",
+      "destination": "/admin-sem-permissao"
     }
   ]
 }

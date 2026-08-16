@@ -1,11 +1,7 @@
 // POST /api/recreacao-salvar  { chave, dados } → grava no Supabase.
 // Exige o cookie cp_sess da equipe (mesmo HMAC do middleware) e usa o
 // REC_WRITE_SECRET do servidor — nem o anon key nem o segredo tocam o cliente.
-const crypto = require('crypto');
-
-function sessionToken(secret) {
-  return crypto.createHmac('sha256', secret).update('cp-auth-v1').digest('hex');
-}
+const { papelDoCookie } = require('../lib/auth');
 
 const CHAVES = ['programacao', 'jantares', 'feriados', 'guia'];
 
@@ -22,9 +18,8 @@ module.exports = async (req, res) => {
     return res.status(500).json({ error: 'Servidor sem envs configuradas' });
   }
 
-  const cookie = String(req.headers.cookie || '');
-  const m = cookie.match(/(?:^|;\s*)cp_sess=([a-f0-9]{64})/);
-  if (!m || m[1] !== sessionToken(authSecret)) {
+  const papel = papelDoCookie(req.headers.cookie, authSecret);
+  if (!papel) {
     return res.status(401).json({ error: 'Não autenticado — faça login em /admin/login' });
   }
 
@@ -32,6 +27,10 @@ module.exports = async (req, res) => {
   const dados = req.body && req.body.dados;
   if (!CHAVES.includes(chave) || dados === undefined) {
     return res.status(400).json({ error: 'Informe chave (programacao|jantares|feriados|guia) e dados' });
+  }
+  // o guia é da recepção; a recreação publica só a programação
+  if (chave === 'guia' && papel !== 'recepcao') {
+    return res.status(403).json({ error: 'Seu perfil não pode publicar o Guia do Hóspede' });
   }
 
   try {

@@ -15,7 +15,7 @@ export const config = {
     '/admin-portal', '/admin-portal.html', '/admin-recreacao', '/admin-recreacao.html',
     '/admin-cinema', '/admin-cinema.html', '/admin-musica', '/admin-musica.html',
     '/admin-brinquedao', '/admin-brinquedao.html', '/admin-guia', '/admin-guia.html',
-    '/admin-login', '/admin-login.html',
+    '/admin-login', '/admin-login.html', '/admin-sem-permissao', '/admin-sem-permissao.html',
     '/conceito-a', '/conceito-a.html',
     '/conceito-b', '/conceito-b.html',
     '/calculadora-pensao-completa', '/calculadora-pensao-completa.html',
@@ -23,17 +23,33 @@ export const config = {
 };
 
 // dentro de /admin, o que abre sem senha
-const LIVRES = new Set(['/admin/login', '/admin/calculadora']);
+const LIVRES = new Set(['/admin/login', '/admin/calculadora', '/admin/sem-permissao']);
 
-async function expectedToken(secret) {
+// papéis: o que cada um pode abrir (espelho de lib/auth.js — Edge não usa require)
+const PAPEIS = ['recepcao', 'recreacao'];
+const PERMISSOES = {
+  recepcao:  ['/admin'],
+  recreacao: ['/admin', '/admin/recreacao', '/admin/cinema', '/admin/cadastro'],
+};
+function podeAcessar(papel, path) {
+  if (papel === 'recepcao') return true;
+  const lista = PERMISSOES[papel] || [];
+  return lista.some(p => path === p || path.startsWith(p + '/'));
+}
+
+async function assinar(secret, papel) {
   const enc = new TextEncoder();
-  const key = await crypto.subtle.importKey(
-    'raw', enc.encode(secret),
-    { name: 'HMAC', hash: 'SHA-256' },
-    false, ['sign']
-  );
-  const sig = await crypto.subtle.sign('HMAC', key, enc.encode('cp-auth-v1'));
+  const key = await crypto.subtle.importKey('raw', enc.encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const sig = await crypto.subtle.sign('HMAC', key, enc.encode('cp-auth-v2:' + papel));
   return Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// devolve o papel da sessão ou null
+async function papelDoCookie(cookieHeader, secret) {
+  const m = String(cookieHeader || '').match(/(?:^|;\s*)cp_sess=([a-z]+)\.([a-f0-9]{64})/);
+  if (!m || !secret || !PAPEIS.includes(m[1])) return null;
+  return (m[2] === await assinar(secret, m[1])) ? m[1] : null;
 }
 
 export default async function middleware(request) {
@@ -51,13 +67,16 @@ export default async function middleware(request) {
   // área da equipe
   if (path === '/admin' || path.startsWith('/admin/')) {
     if (LIVRES.has(path)) return;
-    const secret = process.env.AUTH_SECRET;
-    const cookie = request.headers.get('cookie') || '';
-    const m = cookie.match(/(?:^|;\s*)cp_sess=([a-f0-9]{64})/);
-    if (secret && m && m[1] === await expectedToken(secret)) return;
-    const dest = new URL('/admin/login', url);
-    dest.searchParams.set('next', path);
-    return Response.redirect(dest, 302);
+    const papel = await papelDoCookie(request.headers.get('cookie'), process.env.AUTH_SECRET);
+    if (!papel) {
+      const dest = new URL('/admin/login', url);
+      dest.searchParams.set('next', path);
+      return Response.redirect(dest, 302);
+    }
+    if (!podeAcessar(papel, path)) {
+      return Response.redirect(new URL('/admin/sem-permissao', url), 302);
+    }
+    return;
   }
 
   // qualquer arquivo interno pelo nome direto: não existe
