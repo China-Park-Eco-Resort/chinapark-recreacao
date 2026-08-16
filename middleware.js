@@ -1,30 +1,31 @@
-// Edge Middleware — dois públicos, dois domínios, um deploy.
+// Edge Middleware — tonochinapark.com.br
 //
-//   tonochinapark.com.br      → HÓSPEDE: raiz = Guia; só páginas públicas; internas → 404
-//   chinapark-app.vercel.app  → EQUIPE : raiz = Portal (login); internas exigem cookie
+//   /            → Guia do Hóspede (público)
+//   /admin       → Portal da equipe (login) — TODA a gestão vive em /admin/*
+//   /admin/*     → gerenciadores (recreacao, cinema, musica, brinquedao, guia)
 //
 // A senha NÃO fica no código: mora na env PORTAL_PASSWORD (Vercel).
 // O cookie cp_sess é um HMAC assinado com AUTH_SECRET, emitido por /api/login.
 
 export const config = {
   matcher: [
-    // raiz (decide o destino por domínio)
     '/',
-    // internas — protegidas no domínio da equipe, invisíveis no do hóspede
-    '/portal', '/portal.html',
-    '/admin', '/admin.html',
+    '/admin', '/admin/:path*',
+    // arquivos internos NÃO são acessíveis pelo nome — só via /admin/*
+    '/portal', '/portal.html', '/admin.html',
     '/cinema-admin', '/cinema-admin.html',
     '/musica-admin', '/musica-admin.html',
     '/brinquedao-admin', '/brinquedao-admin.html',
     '/guia-admin', '/guia-admin.html',
+    '/login', '/login.html',
     '/conceito-a', '/conceito-a.html',
     '/conceito-b', '/conceito-b.html',
-    '/login', '/login.html',
     '/calculadora-pensao-completa', '/calculadora-pensao-completa.html',
   ],
 };
 
-const HOSPEDE_HOSTS = ['tonochinapark.com.br', 'www.tonochinapark.com.br'];
+// dentro de /admin, o que abre sem senha
+const LIVRES = new Set(['/admin/login', '/admin/calculadora']);
 
 async function expectedToken(secret) {
   const enc = new TextEncoder();
@@ -40,35 +41,27 @@ async function expectedToken(secret) {
 export default async function middleware(request) {
   const url = new URL(request.url);
   const host = (request.headers.get('host') || '').toLowerCase();
-  const path = url.pathname.replace(/\.html$/, '');
-  const ehHospede = HOSPEDE_HOSTS.includes(host);
+  const path = url.pathname;
 
-  // www → raiz (domínio do hóspede)
   if (host === 'www.tonochinapark.com.br') {
-    return Response.redirect(new URL(url.pathname + url.search, 'https://tonochinapark.com.br'), 308);
+    return Response.redirect(new URL(path + url.search, 'https://tonochinapark.com.br'), 308);
   }
 
-  // raiz: cada público cai na sua casa
-  if (path === '/' || path === '') {
-    return Response.redirect(new URL(ehHospede ? '/guia' : '/portal', url), 302);
+  // raiz = Guia do Hóspede
+  if (path === '/') return Response.redirect(new URL('/guia', url), 302);
+
+  // área da equipe
+  if (path === '/admin' || path.startsWith('/admin/')) {
+    if (LIVRES.has(path)) return;
+    const secret = process.env.AUTH_SECRET;
+    const cookie = request.headers.get('cookie') || '';
+    const m = cookie.match(/(?:^|;\s*)cp_sess=([a-f0-9]{64})/);
+    if (secret && m && m[1] === await expectedToken(secret)) return;
+    const dest = new URL('/admin/login', url);
+    dest.searchParams.set('next', path);
+    return Response.redirect(dest, 302);
   }
 
-  // domínio do hóspede não expõe nada interno (nem a tela de login)
-  if (ehHospede) {
-    return new Response('Não encontrado', { status: 404 });
-  }
-
-  // login e calculadora (recepção) são livres no domínio da equipe
-  if (path === '/login' || path === '/calculadora-pensao-completa') return;
-
-  // demais internas: exigem cookie da equipe
-  const secret = process.env.AUTH_SECRET;
-  const cookie = request.headers.get('cookie') || '';
-  const m = cookie.match(/(?:^|;\s*)cp_sess=([a-f0-9]{64})/);
-  if (secret && m && m[1] === await expectedToken(secret)) {
-    return; // autenticado — segue para a página
-  }
-  const dest = new URL('/login', url);
-  dest.searchParams.set('next', url.pathname);
-  return Response.redirect(dest, 302);
+  // qualquer arquivo interno pelo nome direto: não existe
+  return new Response('Não encontrado', { status: 404 });
 }

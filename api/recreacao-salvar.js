@@ -25,7 +25,7 @@ module.exports = async (req, res) => {
   const cookie = String(req.headers.cookie || '');
   const m = cookie.match(/(?:^|;\s*)cp_sess=([a-f0-9]{64})/);
   if (!m || m[1] !== sessionToken(authSecret)) {
-    return res.status(401).json({ error: 'Não autenticado — faça login em /login.html' });
+    return res.status(401).json({ error: 'Não autenticado — faça login em /admin/login' });
   }
 
   const chave = req.body && req.body.chave;

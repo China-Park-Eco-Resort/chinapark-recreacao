@@ -41,7 +41,7 @@ document.getElementById('f').addEventListener('submit', async function(e){
       body:JSON.stringify({password:document.getElementById('pw').value})
     });
     if(res.ok){
-      var p=new URLSearchParams(location.search).get('next')||'/portal.html';
+      var p=new URLSearchParams(location.search).get('next')||'/admin';
       if(!/^\/[A-Za-z0-9_\-./]*$/.test(p)||p.indexOf('//')===0) p='/portal.html';
       location.href=p;
       return;

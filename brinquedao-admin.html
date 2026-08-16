@@ -103,12 +103,12 @@ html,body{min-height:100%;font-family:'Nunito',sans-serif;color:var(--text);back
   <!-- PANEL -->
   <div class="panel" id="panel">
     <div class="topbar">
-      <a href="portal.html" class="btn-top">&#8592; Portal</a>
+      <a href="/admin" class="btn-top">&#8592; Portal</a>
       <div class="topbar-c">
         <h1>🎠 Brinquedão</h1>
         <p>China Park Eco Resort</p>
       </div>
-      <a class="btn-top" href="portal.html" style="text-decoration:none;display:inline-flex;align-items:center;margin-right:8px">← Portal</a><button class="btn-top" onclick="doLogout()">Sair</button>
+      <a class="btn-top" href="/admin" style="text-decoration:none;display:inline-flex;align-items:center;margin-right:8px">← Portal</a><button class="btn-top" onclick="doLogout()">Sair</button>
     </div>
 
     <div class="tabs">
@@ -228,7 +228,7 @@ function doLogin(){
 }
 document.addEventListener('DOMContentLoaded',doLogin);
 function doLogout(){
-  fetch('/api/logout',{method:'POST'}).finally(function(){location.href='/login.html';});
+  fetch('/api/logout',{method:'POST'}).finally(function(){location.href='/admin/login';});
 }
 
 const COLORS=[['rgba(26,32,64,.1)','#1A2040'],['rgba(240,160,20,.18)','#7A4F00'],['rgba(46,125,82,.12)','#1B6B45'],['rgba(192,57,43,.1)','#8B1A10'],['rgba(107,100,128,.12)','#3D375A']];

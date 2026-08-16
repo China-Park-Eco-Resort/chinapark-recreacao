@@ -1,3 +1,13 @@
 {
-  "cleanUrls": true
+  "cleanUrls": true,
+  "rewrites": [
+    { "source": "/admin",                    "destination": "/portal.html" },
+    { "source": "/admin/recreacao",          "destination": "/admin.html" },
+    { "source": "/admin/cinema",             "destination": "/cinema-admin.html" },
+    { "source": "/admin/musica",             "destination": "/musica-admin.html" },
+    { "source": "/admin/brinquedao",         "destination": "/brinquedao-admin.html" },
+    { "source": "/admin/guia",               "destination": "/guia-admin.html" },
+    { "source": "/admin/login",              "destination": "/login.html" },
+    { "source": "/admin/calculadora",        "destination": "/calculadora-pensao-completa.html" }
+  ]
 }
