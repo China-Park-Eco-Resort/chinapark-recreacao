@@ -33,7 +33,8 @@ const PERMISSOES = {
 };
 function podeAcessar(papel, path) {
   if (papel === 'recepcao') return true;
-  const lista = PERMISSOES[papel] || [];
+  if (path === '/admin') return true;            // portal: todo perfil entra (vê só o seu)
+  const lista = (PERMISSOES[papel] || []).filter(p => p !== '/admin');
   return lista.some(p => path === p || path.startsWith(p + '/'));
 }
 
