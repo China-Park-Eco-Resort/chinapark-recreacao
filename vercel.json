@@ -30,12 +30,12 @@
       "destination": "/admin-login"
     },
     {
-      "source": "/admin/calculadora",
-      "destination": "/calculadora-pensao-completa"
-    },
-    {
       "source": "/admin/sem-permissao",
       "destination": "/admin-sem-permissao"
+    },
+    {
+      "source": "/calculadora",
+      "destination": "/calculadora-pensao-completa"
     }
   ]
 }

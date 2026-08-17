@@ -23,7 +23,7 @@ export const config = {
 };
 
 // dentro de /admin, o que abre sem senha
-const LIVRES = new Set(['/admin/login', '/admin/calculadora', '/admin/sem-permissao']);
+const LIVRES = new Set(['/admin/login', '/admin/sem-permissao']);
 
 // papéis: o que cada um pode abrir (espelho de lib/auth.js — Edge não usa require)
 const PAPEIS = ['recepcao', 'recreacao'];
