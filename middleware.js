@@ -63,6 +63,11 @@ export default async function middleware(request) {
   // raiz = Guia do Hóspede
   if (path === '/') return Response.redirect(new URL('/guia', url), 302);
 
+  // a calculadora saiu do /admin: link antigo leva ao novo, sem senha
+  if (path === '/admin/calculadora') {
+    return Response.redirect(new URL('/calculadora', url), 308);
+  }
+
   // área da equipe
   if (path === '/admin' || path.startsWith('/admin/')) {
     if (LIVRES.has(path)) return;
