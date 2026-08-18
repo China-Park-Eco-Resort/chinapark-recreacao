@@ -36,6 +36,10 @@
     {
       "source": "/calculadora",
       "destination": "/calculadora-pensao-completa"
+    },
+    {
+      "source": "/admin/entrar",
+      "destination": "/api/entrar"
     }
   ]
 }
